@@ -21,3 +21,4 @@ WonderDwell/
 └── .github/workflows/
     └── daily_post.yml      # GitHub Actions daily schedule
 ```
+
