@@ -153,7 +153,23 @@ def post_to_facebook(image_url: str, caption: str, page_id: str, token: str) -> 
         print(f"✅ Facebook Post ID: {post_id}")
         return post_id
     else:
-        print(f"❌ Facebook Error: {result}")
+        print(f"⚠️ URL method error: {result}, trying direct byte upload...")
+        try:
+            h = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+            img_resp = requests.get(image_url, headers=h, timeout=30)
+            if img_resp.status_code == 200:
+                files = {"source": ("home.jpg", img_resp.content, "image/jpeg")}
+                data = {"caption": caption, "access_token": token}
+                r_byte = requests.post(url, data=data, files=files, timeout=60)
+                res_byte = r_byte.json()
+                if "id" in res_byte:
+                    post_id = res_byte["id"]
+                    print(f"✅ Facebook Post ID (direct upload): {post_id}")
+                    return post_id
+                else:
+                    print(f"❌ Facebook Direct Upload Error: {res_byte}")
+        except Exception as e:
+            print(f"❌ Fallback upload exception: {e}")
         return None
 
 # ─── INSTAGRAM POST ──────────────────────────────────────────────────────────
