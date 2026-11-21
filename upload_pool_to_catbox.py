@@ -7,7 +7,7 @@ from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 BASE_DIR = Path(r"E:\Paresh\Auto Post\WonderDwell")
-POOL_DIR = BASE_DIR / "images_pool"
+POOL_DIR = BASE_DIR / "images"
 MAPPING_FILE = BASE_DIR / "catbox_uploaded_map.json"
 QUEUE_FILE = BASE_DIR / "images_urls.txt"
 BACKUP_FILE = BASE_DIR / "images_urls_backup.txt"

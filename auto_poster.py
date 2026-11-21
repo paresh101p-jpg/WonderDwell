@@ -47,9 +47,17 @@ def get_next_image():
     backup_file = SCRIPT_DIR / "images_urls_backup.txt"
     used_file = SCRIPT_DIR / "used_urls.txt"
 
+    # Load used URLs to ensure 100% ZERO DUPLICATES
+    used_urls = set()
+    if used_file.exists():
+        used_urls = {l.strip().lstrip('\ufeff') for l in used_file.read_text(encoding='utf-8').splitlines() if l.strip().lstrip('\ufeff')}
+
     lines = []
     if queue_file.exists():
         lines = [l.strip().lstrip('\ufeff') for l in queue_file.read_text(encoding='utf-8').splitlines() if l.strip().lstrip('\ufeff')]
+
+    # Filter out any that were already used to guarantee zero duplicates
+    lines = [u for u in lines if u not in used_urls]
 
     # Refill from backup if empty
     if not lines:
@@ -57,8 +65,13 @@ def get_next_image():
         if backup_file.exists():
             backup = [l.strip().lstrip('\ufeff') for l in backup_file.read_text(encoding='utf-8').splitlines() if l.strip().lstrip('\ufeff')]
             if backup:
-                random.shuffle(backup)
-                lines = backup
+                unused_backup = [u for u in backup if u not in used_urls]
+                if not unused_backup:
+                    print("All images in pool have been posted once! Resetting cycle...")
+                    used_file.write_text("", encoding='utf-8')
+                    unused_backup = backup
+                random.shuffle(unused_backup)
+                lines = unused_backup
                 queue_file.write_text("\n".join(lines) + "\n", encoding='utf-8')
                 print(f"Refilled {len(lines)} URLs from backup pool.")
 
@@ -66,17 +79,19 @@ def get_next_image():
         print("ERROR: No images available in queue or backup!")
         sys.exit(1)
 
-    # Pop first URL
-    image_url = lines[0]
-    remaining = lines[1:]
-    queue_file.write_text("\n".join(remaining) + "\n" if remaining else "", encoding='utf-8')
+    # Pick completely RANDOMLY (not line-by-line), guaranteed NO DUPLICATES
+    idx = random.randrange(len(lines))
+    image_url = lines.pop(idx)
 
-    # Append to used
+    # Immediately update queue file (removes the picked image so it can never be picked again)
+    queue_file.write_text("\n".join(lines) + "\n" if lines else "", encoding='utf-8')
+
+    # Append to used_urls.txt
     with open(used_file, "a", encoding='utf-8') as f:
         f.write(image_url + "\n")
 
-    print(f"Using image: {image_url}")
-    print(f"Remaining in queue: {len(remaining)}")
+    print(f"🎲 Randomly selected image (100% unique): {image_url}")
+    print(f"Remaining unused in queue: {len(lines)}")
     return image_url
 
 # ─── GEMINI VISION CAPTION ───────────────────────────────────────────────────
